@@ -27,7 +27,17 @@ void naiveTranspose(rank2Tensor* t)
 
 }
 
+void DiagTranspose( rank2Tensor* t){
+	
+	for(int i=0;i<t->rows;i++)
+	{
+		for(int j=i;j<t->cols;j++)
+		{
+			swap(&(t->matrix[i][j]),&(t->matrix[j][i]));	
+		}
+	}
 
+}
 int main ()
 {
 	srand(time(NULL));
