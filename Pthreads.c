@@ -21,6 +21,15 @@ typedef struct forDiagonal
 
 } forDiag;
 
+typedef struct forBlock
+{
+	rank2Tensor* srcMat;
+	int rowStart;
+	int rowEnd;
+
+} forBlock;
+
+
 
 
 void naiveTranspose(rank2Tensor* t)
@@ -52,8 +61,12 @@ void* DiagTranspose(void* arg)
 
 }
 
-void blockTranspose(rank2Tensor* t)
+void* blockTranspose(void* arg)
 {
+	forBlock* blocks = (forBlock*)arg;
+
+	rank2Tensor* t = blocks->srcMat;
+
 
 	for(int i=0; i<t->rows; i+=2)
 	{
@@ -90,20 +103,19 @@ int main ()
 	srand(time(NULL));
 
 	
-	const int numThreads=4;
+	const int numThreads=8;
 	rank2Tensor t;
 
 
-	int N_0=1024;
+	int N_0=4;
 	t.rows=N_0;
 	t.cols=N_0;
 	initRank2Tensor(&t);
 
-
 	forDiag argsForDiag[numThreads];
 
 	pthread_t threads[numThreads];
-
+	displayRank2Tensor(&t);
 
 	argsForDiag[0].srcMat=&t;
 	argsForDiag[0].start=0;
@@ -131,10 +143,10 @@ int main ()
 	{
 		pthread_join(threads[i],NULL);
 	}
+	printf("\n");
+	displayRank2Tensor(&t);
 
 	double time = omp_get_wtime();
-	DiagTranspose(&t);
-
 	double time2 = omp_get_wtime() - time;
 	printf("time elapsed (Diag) : %f\n",((float)time2)/1);
 
