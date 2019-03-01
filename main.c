@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "rank2Tensor.h"
 #include <time.h>
+#include "omp.h"
 
 void swap(int* i1,int* i2)
 {
@@ -10,12 +11,12 @@ void swap(int* i1,int* i2)
 	 *i1=temp;
 	
 }
-
 void naiveTranspose(rank2Tensor* t)
 {
-
+	#pragma omp parallel for
  	for(int i=0; i<t->rows; i++)
  	{	
+ 		#pragma omp parallel for
  		for(int j=0; j<i; j++)
  		{
  			swap(&(t->matrix[i][j]),&(t->matrix[j][i]));
@@ -25,8 +26,9 @@ void naiveTranspose(rank2Tensor* t)
 
 }
 
-void DiagTranspose( rank2Tensor* t){
-	
+void DiagTranspose(rank2Tensor* t)
+{
+	#pragma omp parallel for	
 	for(int i=0;i<t->rows;i++)
 	{
 		for(int j=i;j<t->cols;j++)
@@ -44,7 +46,7 @@ void blockTranspose(rank2Tensor* t)
 	{
 
 
-
+		#pragma omp parallel for
 		for(int j=i; j<t->cols; j+=2)
 		{
 			//internal transpose
@@ -74,17 +76,39 @@ void blockTranspose(rank2Tensor* t)
 int main ()
 {
 	srand(time(NULL));
+
+	unsigned long time = clock();
+	
+
 	rank2Tensor t;
 
-	t.rows=4;
-	t.cols=4;
+	t.rows=81928*2;
+	t.cols=8192*2;
 	initRank2Tensor(&t);
 
-	displayRank2Tensor(&t);
-	blockTranspose(&t);
+	//displayRank2Tensor(&t);
+	naiveTranspose(&t);
 
-	printf("\n");
-	displayRank2Tensor(&t);
+	unsigned long time2 = clock() - time;
+	printf("time elapsed (Naive) : %f\n",((float)time2)/CLOCKS_PER_SEC);
+
+
+	time = clock();
+	DiagTranspose(&t);	
+
+	time2 = clock() - time;
+	printf("time elapsed diagonal: %f\n",((float)time2)/CLOCKS_PER_SEC);
+
+
+
+	time = clock();
+	blockTranspose(&t);	
+
+	time2 = clock() - time;
+	printf("time elapsed Block: %f\n",((float)time2)/CLOCKS_PER_SEC);
+
+	//printf("\n");
+	//displayRank2Tensor(&t);
 
 	disposeRank2Tensor(&t);
 
