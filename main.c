@@ -77,35 +77,35 @@ int main ()
 {
 	srand(time(NULL));
 
-	unsigned long time = clock();
+	unsigned long time = omp_get_wtime();
 	
 
 	rank2Tensor t;
 
-	t.rows=81928*2;
-	t.cols=8192*2;
+	t.rows=8192;
+	t.cols=8192;
 	initRank2Tensor(&t);
 
 	//displayRank2Tensor(&t);
 	naiveTranspose(&t);
 
-	unsigned long time2 = clock() - time;
-	printf("time elapsed (Naive) : %f\n",((float)time2)/CLOCKS_PER_SEC);
+	unsigned long time2 = omp_get_wtime() - time;
+	printf("time elapsed (Naive) : %f\n",((float)time2)/1);
 
 
-	time = clock();
+	time = omp_get_wtime();
 	DiagTranspose(&t);	
 
-	time2 = clock() - time;
-	printf("time elapsed diagonal: %f\n",((float)time2)/CLOCKS_PER_SEC);
+	time2 = omp_get_wtime() - time;
+	printf("time elapsed diagonal: %f\n",((float)time2)/1);
 
 
 
-	time = clock();
+	time = omp_get_wtime();
 	blockTranspose(&t);	
 
-	time2 = clock() - time;
-	printf("time elapsed Block: %f\n",((float)time2)/CLOCKS_PER_SEC);
+	time2 = omp_get_wtime() - time;
+	printf("time elapsed Block: %f\n",((float)time2)/1);
 
 	//printf("\n");
 	//displayRank2Tensor(&t);
