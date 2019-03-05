@@ -24,8 +24,8 @@ typedef struct forDiagonal
 typedef struct forBlock
 {
 	rank2Tensor* srcMat;
-	int rowStart;
-	int rowEnd;
+	int startBlock;
+	int noBlocks;
 
 } forBlock;
 
@@ -65,13 +65,15 @@ void* blockTranspose(void* arg)
 {
 	forBlock* blocks = (forBlock*)arg;
 
+	int blockCount = blocks->noBlocks;
+	int startBlock = blocks->startBlock;
 	rank2Tensor* t = blocks->srcMat;
+	//blocks per row= row index +1
 
+	
 
 	for(int i=0; i<t->rows; i+=2)
 	{
-
-
 		for(int j=i; j<t->cols; j+=2)
 		{
 			//internal transpose
@@ -143,6 +145,8 @@ int main ()
 	{
 		pthread_join(threads[i],NULL);
 	}
+
+
 	printf("\n");
 	displayRank2Tensor(&t);
 
@@ -150,6 +154,40 @@ int main ()
 	double time2 = omp_get_wtime() - time;
 	printf("time elapsed (Diag) : %f\n",((float)time2)/1);
 
+	int blockCount = t.rows/2;
+	blockCount*=blockCount;
+
+	forBlock argsForBlock[numThreads];
+	pthread_t threads_1[numThreads];
+
+
+	int blocksPerThread=blockCount/numThreads;
+	argsForBlock[0].srcMat=&t;
+	argsForBlock[0].noBlocks=blocksPerThread;
+	argsForBlock[0].startBlock=0;
+
+	for (int i = 1; i < numThreads-1; ++i)
+	{
+		argsForBlock[i].srcMat=&t;
+		argsForBlock[i].noBlocks=blocksPerThread;
+		argsForBlock[i].startBlock=i*blocksPerThread;
+
+	}
+	argsForBlock[numThreads-1].srcMat=&t;
+	argsForBlock[numThreads-1].noBlocks=blockCount-(numThreads-2)*blocksPerThread;
+	argsForBlock[numThreads-1].startBlock=(numThreads-1)*blocksPerThread;
+
+
+	for (int i = 0; i<numThreads; i++)
+	{
+		pthread_create(&threads_1[i],NULL,&DiagTranspose,&argsForDiag[i]);
+	}
+	for (int i = 0; i<numThreads; i++)
+	{
+		pthread_join(threads_1[i],NULL);
+	}
+
+	
 
 	disposeRank2Tensor(&t);
 
