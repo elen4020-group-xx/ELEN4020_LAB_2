@@ -70,7 +70,7 @@ void* blockTranspose(void* arg)
 	int startBlock = blocks->startBlock;
 	int endBlock=blockCount+startBlock;
 	rank2Tensor* t = blocks->srcMat;
-
+	//printf("%d %d %d\n ",blockCount,startBlock,endBlock);
 
 	int startRow = (int) ceil( (-1 +sqrt(1+startBlock*4))/2);
 	int startRowStart=(startRow*(startRow+1))/2 - startRow; //blocks per row= row index +1
@@ -112,7 +112,7 @@ int main ()
 	srand(time(NULL));
 
 	
-	const int numThreads=8;
+	int numThreads=8;
 	rank2Tensor t;
 
 
@@ -167,35 +167,46 @@ int main ()
 
 	forBlock argsForBlock[numThreads];
 	pthread_t threads_1[numThreads];
-
+	if(blockCount<numThreads){
+		numThreads=blockCount;
+	}
 
 	int blocksPerThread=blockCount/numThreads;
 	argsForBlock[0].srcMat=&t;
 	argsForBlock[0].noBlocks=blocksPerThread;
 	argsForBlock[0].startBlock=0;
+	printf("%d %d %d\n",blockCount, numThreads, blocksPerThread);
+
 
 	for (int i = 1; i < numThreads-1; ++i)
 	{
+		//printf("%d",i);
 		argsForBlock[i].srcMat=&t;
 		argsForBlock[i].noBlocks=blocksPerThread;
 		argsForBlock[i].startBlock=i*blocksPerThread;
 
 	}
 	argsForBlock[numThreads-1].srcMat=&t;
-	argsForBlock[numThreads-1].noBlocks=blockCount-(numThreads-2)*blocksPerThread;
+	argsForBlock[numThreads-1].noBlocks=blockCount-(numThreads-1)*blocksPerThread;
 	argsForBlock[numThreads-1].startBlock=(numThreads-1)*blocksPerThread;
-
-
+	printf("%d %d\n",argsForBlock[numThreads-1].noBlocks,argsForBlock[numThreads-1].startBlock);
 	for (int k = 0; k<numThreads; k++)
 	{
+		//printf("%d\n",k);
 		pthread_create(&threads_1[k],NULL,&blockTranspose,&argsForBlock[k]);
+		//printf("%d\n",k);
+
 	}
 	for (int k = 0; k<numThreads; k++)
-	{
+	{		
+		printf("%d\n",k);
 		pthread_join(threads_1[k],NULL);
 	}
 
 	
+	printf("\n");
+	displayRank2Tensor(&t);
+
 /////////////////
 	disposeRank2Tensor(&t);
 
