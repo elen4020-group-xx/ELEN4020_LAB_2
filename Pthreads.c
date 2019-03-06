@@ -4,6 +4,7 @@
 #include <time.h>
 #include <omp.h>
 #include <pthread.h>
+#include <math.h>
 
 void swap(int* i1,int* i2)
 {
@@ -67,21 +68,32 @@ void* blockTranspose(void* arg)
 
 	int blockCount = blocks->noBlocks;
 	int startBlock = blocks->startBlock;
+	int endBlock=blockCount+startBlock;
 	rank2Tensor* t = blocks->srcMat;
-	//blocks per row= row index +1
 
-	
 
-	for(int i=0; i<t->rows; i+=2)
+	int startRow = (int) ceil( (-1 +sqrt(1+startBlock*4))/2);
+	int startRowStart=(startRow*(startRow+1))/2 - startRow; //blocks per row= row index +1
+	int startCol = (startBlock-startRowStart)*2;
+
+	int endRow = (int) ceil((-1 +sqrt(1+startBlock*4))/2);
+	int endRowStart = (endRow*(endRow+1))/2 - endRow;
+	int endCol = (endBlock-endRowStart)*2;
+
+
+	for(int i=(startRow-1)*2; i<=(endRow-1)*2; i+=2)
 	{
-		for(int j=i; j<t->cols; j+=2)
+		int p=i;
+		//if in last row only go up to some point
+		if (i==((endRow-1)*2))
+		{
+			p=endCol;
+		}
+		for(int j=startCol; j<p; j+=2)
 		{
 			//internal transpose
 			swap(&(t->matrix[i][j+1]),&(t->matrix[i+1][j]));
 			//swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
-
-
-
 			if(i!=j)
 			{
 				swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
@@ -90,13 +102,8 @@ void* blockTranspose(void* arg)
 				swap(&(t->matrix[i+1][j]),&(t->matrix[j+1][i]));
 				swap(&(t->matrix[i+1][j+1]),&(t->matrix[j+1][i+1]));	
 			}
-
-			///
-			
 		}
-
-
-
+		startCol=0;
 	}
 }
 
@@ -154,6 +161,7 @@ int main ()
 	double time2 = omp_get_wtime() - time;
 	printf("time elapsed (Diag) : %f\n",((float)time2)/1);
 
+//////////////////
 	int blockCount = t.rows/2;
 	blockCount*=blockCount;
 
@@ -178,17 +186,17 @@ int main ()
 	argsForBlock[numThreads-1].startBlock=(numThreads-1)*blocksPerThread;
 
 
-	for (int i = 0; i<numThreads; i++)
+	for (int k = 0; k<numThreads; k++)
 	{
-		pthread_create(&threads_1[i],NULL,&DiagTranspose,&argsForDiag[i]);
+		pthread_create(&threads_1[k],NULL,&blockTranspose,&argsForBlock[k]);
 	}
-	for (int i = 0; i<numThreads; i++)
+	for (int k = 0; k<numThreads; k++)
 	{
-		pthread_join(threads_1[i],NULL);
+		pthread_join(threads_1[k],NULL);
 	}
 
 	
-
+/////////////////
 	disposeRank2Tensor(&t);
 
 	return 0;
