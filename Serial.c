@@ -87,10 +87,10 @@ int main ()
 		initRank2Tensor(&t);
 
 
-		unsigned long time = omp_get_wtime();
+		double time = omp_get_wtime();
 		naiveTranspose(&t);
 
-		unsigned long time2 = omp_get_wtime() - time;
+		double time2 = omp_get_wtime() - time;
 		printf("time elapsed (Naive) : %f\n",((float)time2));
 
 
