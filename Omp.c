@@ -13,7 +13,7 @@ void swap(int* i1,int* i2)
 }
 void naiveTranspose(rank2Tensor* t)
 {
-	#pragma omp parallel for
+	//#pragma omp parallel for //collapse(2)
  	for(int i=0; i<t->rows; i++)
  	{	
  		#pragma omp parallel for
@@ -41,12 +41,13 @@ void DiagTranspose(rank2Tensor* t)
 
 void blockTranspose(rank2Tensor* t)
 {
+		#pragma omp parallel for //collapse(2)
 
 	for(int i=0; i<t->rows; i+=2)
 	{
 
 
-		#pragma omp parallel for
+		//#pragma omp parallel for
 		for(int j=i; j<t->cols; j+=2)
 		{
 			//internal transpose
