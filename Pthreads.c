@@ -71,27 +71,13 @@ void* blockTranspose(void* arg)
 	int endBlock=blockCount+startBlock-1;
 	//printf("\nblockCount: %d startBlock: %d endBlock:%d\n",blockCount,startBlock+1,endBlock+1);
 	rank2Tensor* t = blocks->srcMat;
-	//int startRow = (int) ceil( (-1 +sqrt(1+startBlock*4))/2);
-	int startRow = 0;
+	int startRow = (int) ceil( (-1 +sqrt(1+(startBlock+1)*8))/2) -1;
 
-	for(int i=1;;i++){
-		if (startBlock<(i*(i+1)/2)){
-			startRow=i-1;
-			break;
-		}
-	}
 	int startRowStart=((startRow+1)*(startRow+2))/2 - (startRow+1); //blocks per row= row index +1
 	int startCol = (startBlock-startRowStart)*2;
 
-//	int endRow = (int) ceil((-1 +sqrt(1+endBlock*4))/2);
-	int endRow = 0;
+	int endRow = (int) ceil((-1 +sqrt(1+(1+endBlock)*8))/2) -1;
 
-	for(int i=1;;i++){
-		if (endBlock<(i*(i+1)/2)){
-			endRow=i-1;
-			break;
-		}
-	}
 	int endRowStart = ((endRow+1)*(endRow+2))/2 - (endRow+1);
 	int endCol = (endBlock-endRowStart)*2;
 	//printf("%d %d\n",startRowStart,endRowStart);
@@ -129,12 +115,13 @@ int main ()
 {
 	srand(time(NULL));
 
+	//const int matSizes[]
 	
 	int numThreads=8;
 	rank2Tensor t;
 
 
-	int N_0=10;
+	int N_0=16;
 	t.rows=N_0;
 	t.cols=N_0;
 	initRank2Tensor(&t);
@@ -161,7 +148,7 @@ int main ()
 
 	printf("%d\n", argsForDiag[numThreads-1].end);
 
-
+	double time = omp_get_wtime();
 	for (int i = 0; i<numThreads; i++)
 	{
 		pthread_create(&threads[i],NULL,&DiagTranspose,&argsForDiag[i]);
@@ -170,14 +157,14 @@ int main ()
 	{
 		pthread_join(threads[i],NULL);
 	}
-
+	double time2 = omp_get_wtime() - time;
+	printf("time elapsed (Diag) : %f\n",((float)time2)/1);
 
 	printf("\n");
 	displayRank2Tensor(&t);
 
-	double time = omp_get_wtime();
-	double time2 = omp_get_wtime() - time;
-	printf("time elapsed (Diag) : %f\n",((float)time2)/1);
+	
+
 
 //////////////////
 	int blockCount = t.rows/2;
@@ -208,7 +195,7 @@ int main ()
 	argsForBlock[numThreads-1].noBlocks=blockCount-(numThreads-1)*blocksPerThread;
 	argsForBlock[numThreads-1].startBlock=(numThreads-1)*blocksPerThread;
 	//printf("Last thread: %d\n", argsForBlock[numThreads-1].noBlocks);
-
+	time = omp_get_wtime();
 	for (int k = 0; k<numThreads; k++)
 	{
 		pthread_create(&threads_1[k],NULL,&blockTranspose,&argsForBlock[k]);
@@ -218,7 +205,8 @@ int main ()
 	{		
 		pthread_join(threads_1[k],NULL);
 	}
-
+	time2 = omp_get_wtime() - time;
+	printf("time elapsed (Block) : %f\n",((float)time2)/1);
 	
 	printf("\n");
 	displayRank2Tensor(&t);
