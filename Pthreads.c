@@ -163,7 +163,7 @@ int main ()
 
 //////////////////
 	int blockCount = t.rows/2;
-	blockCount*=blockCount;
+	blockCount=blockCount*(blockCount+1)/2;
 
 	forBlock argsForBlock[numThreads];
 	pthread_t threads_1[numThreads];
