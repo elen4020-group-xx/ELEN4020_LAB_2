@@ -68,39 +68,38 @@ void* blockTranspose(void* arg)
 
 	int blockCount = blocks->noBlocks;
 	int startBlock = blocks->startBlock;
-	int endBlock=blockCount+startBlock;
+	int endBlock=blockCount+startBlock-1;
 	rank2Tensor* t = blocks->srcMat;
-	//printf("%d %d %d\n ",blockCount,startBlock,endBlock);
-
 	int startRow = (int) ceil( (-1 +sqrt(1+startBlock*4))/2);
-	int startRowStart=(startRow*(startRow+1))/2 - startRow; //blocks per row= row index +1
+	int startRowStart=((startRow+1)*(startRow+2))/2 - (startRow+1); //blocks per row= row index +1
 	int startCol = (startBlock-startRowStart)*2;
 
-	int endRow = (int) ceil((-1 +sqrt(1+startBlock*4))/2);
-	int endRowStart = (endRow*(endRow+1))/2 - endRow;
+	int endRow = (int) ceil((-1 +sqrt(1+endBlock*4))/2);
+	int endRowStart = ((endRow+1)*(endRow+2))/2 - (endRow+1);
 	int endCol = (endBlock-endRowStart)*2;
 
-
-	for(int i=(startRow-1)*2; i<=(endRow-1)*2; i+=2)
+	for(int i=(startRow)*2; i<=(endRow)*2; i+=2)
 	{
 		int p=i;
 		//if in last row only go up to some point
-		if (i==((endRow-1)*2))
+		if (i==((endRow)*2))
 		{
 			p=endCol;
 		}
-		for(int j=startCol; j<p; j+=2)
+		for(int j=startCol; j<=p; j+=2)
 		{
 			//internal transpose
+
 			swap(&(t->matrix[i][j+1]),&(t->matrix[i+1][j]));
-			//swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
 			if(i!=j)
-			{
+			{			
+
 				swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
 				swap(&(t->matrix[i][j]),&(t->matrix[j][i]));
 				swap(&(t->matrix[i][j+1]),&(t->matrix[j][i+1]));		
 				swap(&(t->matrix[i+1][j]),&(t->matrix[j+1][i]));
-				swap(&(t->matrix[i+1][j+1]),&(t->matrix[j+1][i+1]));	
+				swap(&(t->matrix[i+1][j+1]),&(t->matrix[j+1][i+1]));
+	
 			}
 		}
 		startCol=0;
@@ -116,7 +115,7 @@ int main ()
 	rank2Tensor t;
 
 
-	int N_0=4;
+	int N_0=10;
 	t.rows=N_0;
 	t.cols=N_0;
 	initRank2Tensor(&t);
@@ -175,7 +174,7 @@ int main ()
 	argsForBlock[0].srcMat=&t;
 	argsForBlock[0].noBlocks=blocksPerThread;
 	argsForBlock[0].startBlock=0;
-	printf("%d %d %d\n",blockCount, numThreads, blocksPerThread);
+	//printf("%d %d %d\n",blockCount, numThreads, blocksPerThread);
 
 
 	for (int i = 1; i < numThreads-1; ++i)
@@ -189,7 +188,6 @@ int main ()
 	argsForBlock[numThreads-1].srcMat=&t;
 	argsForBlock[numThreads-1].noBlocks=blockCount-(numThreads-1)*blocksPerThread;
 	argsForBlock[numThreads-1].startBlock=(numThreads-1)*blocksPerThread;
-	printf("%d %d\n",argsForBlock[numThreads-1].noBlocks,argsForBlock[numThreads-1].startBlock);
 	for (int k = 0; k<numThreads; k++)
 	{
 		//printf("%d\n",k);
@@ -199,7 +197,7 @@ int main ()
 	}
 	for (int k = 0; k<numThreads; k++)
 	{		
-		printf("%d\n",k);
+		//printf("%d\n",k);
 		pthread_join(threads_1[k],NULL);
 	}
 
