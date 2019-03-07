@@ -77,40 +77,45 @@ int main ()
 {
 	srand(time(NULL));
 
-	unsigned long time = omp_get_wtime();
+
 	
 
 	rank2Tensor t;
-
-	t.rows=8192;
-	t.cols=8192;
-	initRank2Tensor(&t);
-
-	//displayRank2Tensor(&t);
-	naiveTranspose(&t);
-
-	unsigned long time2 = omp_get_wtime() - time;
-	printf("time elapsed (Naive) : %f\n",((float)time2)/1);
+	
+	const int matSizes[5]={128,1024,2048,4096,8192};
+	for(int testNo=0; testNo<5; testNo++)
+	{
+		int N0=matSizes[testNo];
+		t.rows=N0;
+		t.cols=N0;
+		initRank2Tensor(&t);
 
 
-	time = omp_get_wtime();
-	DiagTranspose(&t);	
+		unsigned long time = omp_get_wtime();
+		naiveTranspose(&t);
 
-	time2 = omp_get_wtime() - time;
-	printf("time elapsed diagonal: %f\n",((float)time2)/1);
+		unsigned long time2 = omp_get_wtime() - time;
+		printf("time elapsed (Naive) : %f\n",((float)time2));
+
+
+		time = omp_get_wtime();
+		DiagTranspose(&t);	
+
+		time2 = omp_get_wtime() - time;
+		printf("time elapsed diagonal: %f\n",((float)time2));
 
 
 
-	time = omp_get_wtime();
-	blockTranspose(&t);	
+		time = omp_get_wtime();
+		blockTranspose(&t);	
 
-	time2 = omp_get_wtime() - time;
-	printf("time elapsed Block: %f\n",((float)time2)/1);
+		time2 = omp_get_wtime() - time;
+		printf("time elapsed Block: %f\n",((float)time2));
 
-	//printf("\n");
-	//displayRank2Tensor(&t);
+		//printf("\n");
+		//displayRank2Tensor(&t);
 
-	disposeRank2Tensor(&t);
-
+		disposeRank2Tensor(&t);
+	}
 	return 0;
 }

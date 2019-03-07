@@ -114,105 +114,99 @@ void* blockTranspose(void* arg)
 int main ()
 {
 	srand(time(NULL));
-
-	//const int matSizes[]
-	
-	int numThreads=8;
 	rank2Tensor t;
-
-
-	int N_0=16;
-	t.rows=N_0;
-	t.cols=N_0;
-	initRank2Tensor(&t);
-
-	forDiag argsForDiag[numThreads];
-
-	pthread_t threads[numThreads];
-	displayRank2Tensor(&t);
-
-	argsForDiag[0].srcMat=&t;
-	argsForDiag[0].start=0;
-	argsForDiag[0].end=N_0/numThreads;
-
-	for (int i = 1; i < numThreads-1; ++i)
+	const int matSizes[4]={128,1024,2048,4096};
+	for (int testNo = 0; testNo < 4; testNo++)
 	{
-		argsForDiag[i].srcMat=&t;
-		argsForDiag[i].start=argsForDiag[i-1].end;
-		argsForDiag[i].end=argsForDiag[i].start+N_0/numThreads;
+		int numThreads = 8;
 
+		int N_0 = matSizes[testNo];
+		t.rows = N_0;
+		t.cols = N_0;
+		initRank2Tensor(&t);
+
+		forDiag argsForDiag[numThreads];
+
+		pthread_t threads[numThreads];
+		//displayRank2Tensor(&t);
+
+		argsForDiag[0].srcMat = &t;
+		argsForDiag[0].start = 0;
+		argsForDiag[0].end = N_0 / numThreads;
+
+		for (int i = 1; i < numThreads - 1; ++i)
+		{
+			argsForDiag[i].srcMat = &t;
+			argsForDiag[i].start = argsForDiag[i - 1].end;
+			argsForDiag[i].end = argsForDiag[i].start + N_0 / numThreads;
+		}
+		argsForDiag[numThreads - 1].srcMat = &t;
+		argsForDiag[numThreads - 1].start = argsForDiag[numThreads - 2].end;
+		argsForDiag[numThreads - 1].end = N_0;
+
+		printf("%d\n", argsForDiag[numThreads - 1].end);
+
+		double time = omp_get_wtime();
+		for (int i = 0; i < numThreads; i++)
+		{
+			pthread_create(&threads[i], NULL, &DiagTranspose, &argsForDiag[i]);
+		}
+		for (int i = 0; i < numThreads; i++)
+		{
+			pthread_join(threads[i], NULL);
+		}
+		double time2 = omp_get_wtime() - time;
+		printf("time elapsed (Diag) : %f\n", ((float)time2) / 1);
+
+		printf("\n");
+		//displayRank2Tensor(&t);
+
+		//////////////////
+		int blockCount = t.rows / 2;
+		blockCount = blockCount * (blockCount + 1) / 2;
+
+		forBlock argsForBlock[numThreads];
+		pthread_t threads_1[numThreads];
+		if (blockCount < numThreads)
+		{
+			numThreads = blockCount;
+		}
+		//printf("blockcount: %d\n",blockCount);
+		int blocksPerThread = blockCount / numThreads;
+		argsForBlock[0].srcMat = &t;
+		argsForBlock[0].noBlocks = blocksPerThread;
+		argsForBlock[0].startBlock = 0;
+		//printf("Per thread: %d\n", blocksPerThread);
+
+		for (int i = 1; i < numThreads - 1; ++i)
+		{
+			//printf("%d",i);
+			argsForBlock[i].srcMat = &t;
+			argsForBlock[i].noBlocks = blocksPerThread;
+			argsForBlock[i].startBlock = i * blocksPerThread;
+		}
+		argsForBlock[numThreads - 1].srcMat = &t;
+		argsForBlock[numThreads - 1].noBlocks = blockCount - (numThreads - 1) * blocksPerThread;
+		argsForBlock[numThreads - 1].startBlock = (numThreads - 1) * blocksPerThread;
+		//printf("Last thread: %d\n", argsForBlock[numThreads-1].noBlocks);
+		time = omp_get_wtime();
+		for (int k = 0; k < numThreads; k++)
+		{
+			pthread_create(&threads_1[k], NULL, &blockTranspose, &argsForBlock[k]);
+		}
+		for (int k = 0; k < numThreads; k++)
+		{
+			pthread_join(threads_1[k], NULL);
+		}
+		time2 = omp_get_wtime() - time;
+		printf("time elapsed (Block) : %f\n", ((float)time2) / 1);
+
+		printf("\n");
+		//displayRank2Tensor(&t);
+
+		/////////////////
+		disposeRank2Tensor(&t);
 	}
-	argsForDiag[numThreads-1].srcMat=&t;
-	argsForDiag[numThreads-1].start=argsForDiag[numThreads-2].end;
-	argsForDiag[numThreads-1].end=N_0;
-
-	printf("%d\n", argsForDiag[numThreads-1].end);
-
-	double time = omp_get_wtime();
-	for (int i = 0; i<numThreads; i++)
-	{
-		pthread_create(&threads[i],NULL,&DiagTranspose,&argsForDiag[i]);
-	}
-	for (int i = 0; i<numThreads; i++)
-	{
-		pthread_join(threads[i],NULL);
-	}
-	double time2 = omp_get_wtime() - time;
-	printf("time elapsed (Diag) : %f\n",((float)time2)/1);
-
-	printf("\n");
-	displayRank2Tensor(&t);
-
-	
-
-
-//////////////////
-	int blockCount = t.rows/2;
-	blockCount=blockCount*(blockCount+1)/2;
-
-	forBlock argsForBlock[numThreads];
-	pthread_t threads_1[numThreads];
-	if(blockCount<numThreads){
-		numThreads=blockCount;
-	}
-	//printf("blockcount: %d\n",blockCount);
-	int blocksPerThread=blockCount/numThreads;
-	argsForBlock[0].srcMat=&t;
-	argsForBlock[0].noBlocks=blocksPerThread;
-	argsForBlock[0].startBlock=0;
-	//printf("Per thread: %d\n", blocksPerThread);
-
-
-	for (int i = 1; i < numThreads-1; ++i)
-	{
-		//printf("%d",i);
-		argsForBlock[i].srcMat=&t;
-		argsForBlock[i].noBlocks=blocksPerThread;
-		argsForBlock[i].startBlock=i*blocksPerThread;
-
-	}
-	argsForBlock[numThreads-1].srcMat=&t;
-	argsForBlock[numThreads-1].noBlocks=blockCount-(numThreads-1)*blocksPerThread;
-	argsForBlock[numThreads-1].startBlock=(numThreads-1)*blocksPerThread;
-	//printf("Last thread: %d\n", argsForBlock[numThreads-1].noBlocks);
-	time = omp_get_wtime();
-	for (int k = 0; k<numThreads; k++)
-	{
-		pthread_create(&threads_1[k],NULL,&blockTranspose,&argsForBlock[k]);
-
-	}
-	for (int k = 0; k<numThreads; k++)
-	{		
-		pthread_join(threads_1[k],NULL);
-	}
-	time2 = omp_get_wtime() - time;
-	printf("time elapsed (Block) : %f\n",((float)time2)/1);
-	
-	printf("\n");
-	displayRank2Tensor(&t);
-
-/////////////////
-	disposeRank2Tensor(&t);
 
 	return 0;
 }
