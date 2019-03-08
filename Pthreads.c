@@ -115,8 +115,15 @@ int main ()
 {
 	srand(time(NULL));
 	rank2Tensor t;
-	const int matSizes[5]={128,1024,2048,4096,8196};
-	for (int testNo = 0; testNo < 5; testNo++)
+	char* fileName="pthreads.csv";
+	FILE *fp;
+	fp=fopen(fileName,"a");
+	double times_diag[6]={0};
+	double times_block[6]={0};
+
+
+	const int matSizes[6]={128,1024,2048,4096,8196,16392};
+	for (int testNo = 0; testNo < 6; testNo++)
 	{
 		int numThreads = 8;
 
@@ -156,6 +163,7 @@ int main ()
 			pthread_join(threads[i], NULL);
 		}
 		double time2 = omp_get_wtime() - time;
+		times_diag[testNo]=time2;
 		printf("time elapsed (Diag) : %f\n", ((float)time2) / 1);
 
 		printf("\n");
@@ -199,14 +207,18 @@ int main ()
 			pthread_join(threads_1[k], NULL);
 		}
 		time2 = omp_get_wtime() - time;
+		times_block[testNo]=time2;
 		printf("time elapsed (Block) : %f\n", ((float)time2) / 1);
 
 		printf("\n");
 		//displayRank2Tensor(&t);
 
 		/////////////////
+
+		fprintf(fp,"%d,%f,%f\n",matSizes[testNo],times_diag[testNo],times_block[testNo]);
 		disposeRank2Tensor(&t);
 	}
 
+	fclose(fp);
 	return 0;
 }

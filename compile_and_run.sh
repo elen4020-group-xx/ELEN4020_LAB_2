@@ -1,4 +1,5 @@
 rm -f *.o
+rm -f *.csv
 echo "compiling"
 gcc Omp.c -o omp.o -fopenmp
 gcc Pthreads.c -o pt.o -lpthread -fopenmp
