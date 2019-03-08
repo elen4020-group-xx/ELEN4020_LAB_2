@@ -115,8 +115,8 @@ int main ()
 {
 	srand(time(NULL));
 	rank2Tensor t;
-	const int matSizes[4]={128,1024,2048,4096};
-	for (int testNo = 0; testNo < 4; testNo++)
+	const int matSizes[5]={128,1024,2048,4096,8196};
+	for (int testNo = 0; testNo < 5; testNo++)
 	{
 		int numThreads = 8;
 
