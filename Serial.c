@@ -44,12 +44,7 @@ void blockTranspose(rank2Tensor* t)
 
 		for(int j=i; j<t->cols; j+=2)
 		{
-			//internal transpose
 			swap(&(t->matrix[i][j+1]),&(t->matrix[i+1][j]));
-			//swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
-
-
-
 			if(i!=j)
 			{
 				swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
@@ -58,13 +53,8 @@ void blockTranspose(rank2Tensor* t)
 				swap(&(t->matrix[i+1][j]),&(t->matrix[j+1][i]));
 				swap(&(t->matrix[i+1][j+1]),&(t->matrix[j+1][i+1]));	
 			}
-
-			///
 			
 		}
-
-
-
 	}
 }
 
@@ -84,6 +74,7 @@ int main ()
 	rank2Tensor t;
 	
 	const int matSizes[6]={128,1024,2048,4096,8196,16392};
+	//foreach matrix size
 	for (int testNo = 0; testNo < 6; testNo++)
 	{
 		int N0=matSizes[testNo];
@@ -101,7 +92,6 @@ int main ()
 	
 		printf("time elapsed (Naive) : %f\n",((float)time2));
 
-
 		time = omp_get_wtime();
 		DiagTranspose(&t);	
 
@@ -111,8 +101,6 @@ int main ()
 
 		printf("time elapsed diagonal: %f\n",((float)time2));
 
-
-
 		time = omp_get_wtime();
 		blockTranspose(&t);	
 
@@ -121,11 +109,9 @@ int main ()
 
 		printf("time elapsed Block: %f\n",((float)time2));
 
-		//printf("\n");
-		//displayRank2Tensor(&t);
-
+		//save result to file
 		fprintf(fp,"%d,%f,%f,%f\n",matSizes[testNo],times_naive[testNo],times_diag[testNo],times_block[testNo]);
-
+		//free memory
 		disposeRank2Tensor(&t);
 	}
 

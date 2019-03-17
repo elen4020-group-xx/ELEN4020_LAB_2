@@ -65,11 +65,13 @@ void* DiagTranspose(void* arg)
 void* blockTranspose(void* arg)
 {
 	forBlock* blocks = (forBlock*)arg;
-
+	//resolve arguments
 	int blockCount = blocks->noBlocks;
 	int startBlock = blocks->startBlock;
 	int endBlock=blockCount+startBlock-1;
-	//printf("\nblockCount: %d startBlock: %d endBlock:%d\n",blockCount,startBlock+1,endBlock+1);
+
+
+	////Convert block coordinate space to matrix coordinate space
 	rank2Tensor* t = blocks->srcMat;
 	int startRow = (int) ceil( (-1 +sqrt(1+(startBlock+1)*8))/2) -1;
 
@@ -80,8 +82,8 @@ void* blockTranspose(void* arg)
 
 	int endRowStart = ((endRow+1)*(endRow+2))/2 - (endRow+1);
 	int endCol = (endBlock-endRowStart)*2;
-	//printf("%d %d\n",startRowStart,endRowStart);
-	//printf("%d %d %d %d\n",startRow,endRow,startCol/2,endCol/2);
+	////
+
 	for(int i=(startRow)*2; i<=(endRow)*2; i+=2)
 	{
 		int p=i;
@@ -93,18 +95,14 @@ void* blockTranspose(void* arg)
 		for(int j=startCol; j<=p; j+=2)
 		{
 			//internal transpose
-			//printf("i:%d j:%d\n",i/2+1,j/2+1);
-
 			swap(&(t->matrix[i][j+1]),&(t->matrix[i+1][j]));
 			if(i!=j)
 			{			
-				//printf("i:%d j:%d\n",i,j,p);
 				swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
 				swap(&(t->matrix[i][j]),&(t->matrix[j][i]));
 				swap(&(t->matrix[i][j+1]),&(t->matrix[j][i+1]));		
 				swap(&(t->matrix[i+1][j]),&(t->matrix[j+1][i]));
 				swap(&(t->matrix[i+1][j+1]),&(t->matrix[j+1][i+1]));
-
 			}
 		}
 		startCol=0;
@@ -123,6 +121,7 @@ int main ()
 
 
 	const int matSizes[6]={128,1024,2048,4096,8196,16392};
+	//foreach matrix size
 	for (int testNo = 0; testNo < 6; testNo++)
 	{
 		int numThreads = 8;
@@ -131,12 +130,10 @@ int main ()
 		t.rows = N_0;
 		t.cols = N_0;
 		initRank2Tensor(&t);
-
+		//diagonal worksharing
 		forDiag argsForDiag[numThreads];
 
 		pthread_t threads[numThreads];
-		//displayRank2Tensor(&t);
-
 		argsForDiag[0].srcMat = &t;
 		argsForDiag[0].start = 0;
 		argsForDiag[0].end = N_0 / numThreads;
@@ -167,9 +164,7 @@ int main ()
 		printf("time elapsed (Diag) : %f\n", ((float)time2) / 1);
 
 		printf("\n");
-		//displayRank2Tensor(&t);
-
-		//////////////////
+		//// Block worksharing
 		int blockCount = t.rows / 2;
 		blockCount = blockCount * (blockCount + 1) / 2;
 
@@ -179,16 +174,14 @@ int main ()
 		{
 			numThreads = blockCount;
 		}
-		//printf("blockcount: %d\n",blockCount);
+
 		int blocksPerThread = blockCount / numThreads;
 		argsForBlock[0].srcMat = &t;
 		argsForBlock[0].noBlocks = blocksPerThread;
 		argsForBlock[0].startBlock = 0;
-		//printf("Per thread: %d\n", blocksPerThread);
 
 		for (int i = 1; i < numThreads - 1; ++i)
 		{
-			//printf("%d",i);
 			argsForBlock[i].srcMat = &t;
 			argsForBlock[i].noBlocks = blocksPerThread;
 			argsForBlock[i].startBlock = i * blocksPerThread;
@@ -196,8 +189,8 @@ int main ()
 		argsForBlock[numThreads - 1].srcMat = &t;
 		argsForBlock[numThreads - 1].noBlocks = blockCount - (numThreads - 1) * blocksPerThread;
 		argsForBlock[numThreads - 1].startBlock = (numThreads - 1) * blocksPerThread;
-		//printf("Last thread: %d\n", argsForBlock[numThreads-1].noBlocks);
 		time = omp_get_wtime();
+		
 		for (int k = 0; k < numThreads; k++)
 		{
 			pthread_create(&threads_1[k], NULL, &blockTranspose, &argsForBlock[k]);
@@ -211,11 +204,9 @@ int main ()
 		printf("time elapsed (Block) : %f\n", ((float)time2) / 1);
 
 		printf("\n");
-		//displayRank2Tensor(&t);
-
-		/////////////////
-
+		//save result to file
 		fprintf(fp,"%d,%f,%f\n",matSizes[testNo],times_diag[testNo],times_block[testNo]);
+		//free memory
 		disposeRank2Tensor(&t);
 	}
 

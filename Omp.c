@@ -13,7 +13,6 @@ void swap(int* i1,int* i2)
 }
 void naiveTranspose(rank2Tensor* t)
 {
-	//#pragma omp parallel for //collapse(2)
  	for(int i=0; i<t->rows; i++)
  	{	
  		#pragma omp parallel for
@@ -41,32 +40,23 @@ void DiagTranspose(rank2Tensor* t)
 
 void blockTranspose(rank2Tensor* t)
 {
-		#pragma omp parallel for //collapse(2)
-
+	#pragma omp parallel for 
 	for(int i=0; i<t->rows; i+=2)
 	{
-
-
-		//#pragma omp parallel for
 		for(int j=i; j<t->cols; j+=2)
 		{
-			//internal transpose
+			//internral transposition
 			swap(&(t->matrix[i][j+1]),&(t->matrix[i+1][j]));
-			//swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
-
-
 
 			if(i!=j)
 			{
+				//internal transposition and block swap
 				swap(&(t->matrix[j][i+1]),&(t->matrix[j+1][i]));
 				swap(&(t->matrix[i][j]),&(t->matrix[j][i]));
 				swap(&(t->matrix[i][j+1]),&(t->matrix[j][i+1]));		
 				swap(&(t->matrix[i+1][j]),&(t->matrix[j+1][i]));
 				swap(&(t->matrix[i+1][j+1]),&(t->matrix[j+1][i+1]));	
 			}
-
-			///
-			
 		}
 
 
@@ -88,6 +78,7 @@ int main ()
 	double times_block[6]={0};
 
 	const int matSizes[6]={128,1024,2048,4096,8196,16392};
+	//foreach matrix size	
 	for (int testNo = 0; testNo < 6; testNo++)
 	{
 		int N0=matSizes[testNo];
@@ -114,8 +105,6 @@ int main ()
 		
 		printf("time elapsed diagonal: %f\n",((float)time2));
 
-
-
 		time = omp_get_wtime();
 		blockTranspose(&t);	
 
@@ -123,11 +112,9 @@ int main ()
 		times_block[testNo]=  time2;
 		printf("time elapsed Block: %f\n",((float)time2));
 
-		//printf("\n");
-		//displayRank2Tensor(&t);
-
+		//save result to file
 		fprintf(fp,"%d,%f,%f,%f\n",matSizes[testNo],times_naive[testNo],times_diag[testNo],times_block[testNo]);
-
+		//free matrix
 		disposeRank2Tensor(&t);
 	}
 

@@ -34,7 +34,7 @@ void initRank2Tensor(rank2Tensor* t)
 	{
 		t->matrix[i]=malloc(t->cols*sizeof(int));
 		for(int j=0; j<t->cols; j++)
-			t->matrix[i][j]=rand()%RANDOM_RANGE_2;
+			t->matrix[i][j]=rand()%(t->rows);
 
 	}
 
