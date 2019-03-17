@@ -337,9 +337,9 @@ This document discusses the implementation of three matrix transposition algorit
 
 \section {Structs and Helper Functions}
 
-This lab exercise involved the reuse of a rank 2 tensor struct created for the first lab exercise. This struct is used to store matrices, and metadata i.e. the dimensions of the matrix. Additional helper functions for the initialisation of the contents of the tensor, and the freeing of memory dynamically allocated for their content are implemented.
+This lab exercise involved the reuse of a rank 2 tensor \textit{struct} created for the first lab exercise. This struct is used to store matrices, and metadata i.e. the dimensions of the matrix. Additional helper functions for the initialisation of the contents of the tensor, and the freeing of memory dynamically allocated for their content are implemented.
 
-Additionally, other structs are required for achieving parallelisation using Pthreads; in order to work-share between threads. That is, these structs contain additional data which indicates to the transposition algorithm the \textit{segment} of the matrix which is to be parallelised by a certain thread.
+Additionally, other \textit{structs} are required for achieving parallelisation using Pthreads; in order to work-share between threads. That is, these \textit{structs} contain additional data which indicates to the transposition algorithm the \textit{segment} of the matrix which is to be parallelised by a certain thread.
 
 
 
@@ -396,25 +396,27 @@ A simple parallelisation of this approach would be to allocate a thread to each 
 
 \section{OpenMP Parallelisation}
 
-This section discusses the parallelisation of the aforementioned serial transposition algorithms using OpenMP. This is done entirely through the use of compiler directives, specifically those used for the parallelisation of for loops.
+This section discusses the parallelisation of the aforementioned serial transposition algorithms using OpenMP. This is done entirely through the use of compiler directives, specifically those used for the parallelisation of for loops, using static scheduling.
 
 
 \subsection{Naive Approach}
-The parallelisation of the naive approach is achieved through essentially assigning a thread to each cell-swap operation that is required for the transposition. This is achieved by parallelising the outer \textit{for} loop such that each thread is assigned a near equal number of cell swaps. There are $\frac{N(N+1)}{2}$ swap operations in total, shared across $M$ threads i.e. $\frac{N(N+1)}{2M}$ swaps per thread ideally.
+The parallelisation of the naive approach is achieved through essentially assigning a thread to each cell-swap operation that is required for the transposition. This is achieved by parallelising the inner \textit{for} loop such that threads are assigned on a per swap basis. There are $\frac{N(N+1)}{2}$ swap operations in total, shared across $M$ threads i.e. $\frac{N(N+1)}{2M}$ swaps per thread ideally.
 
-Parallelising the outer loop, instead of the inner loop, allows for a far smaller number of fork-join operations to be used in the program's execution. Parallelising the inner loop would require fork-join operations on a per row basis, resulting in far more overhead than the chosen method. Similarly, the use of nested parallelism makes for a less efficient solution; this is a much more time consuming way in which to implement work sharing as there is an overhead incurred for each swap operation \cite{Chapter356:online}. %Because of these consequences, 
+Parallelising the outer loop, instead of the inner loop, allows for a far smaller number of fork-join operations to be used in the program's execution. Parallelising the inner loop requires fork-join operations on a per row basis, resulting in more overhead. Despite this, in order to stay within the philosophy of the naive approach, and keep it distinct from the diagonal approach, parallelisation of the inner loop is required.
+
+In addition, the use of nested parallelism also makes for a less efficient solution: it is disabled by default in OpenMP, such that the second parallel region is ignored \cite{Chapter356:online}.
 
 \subsection{Diagonal Approach}
 The parallelisation of the diagonal approach corresponds to the assignment of a thread to each diagonal element of the matrix; such that a thread is tasked with all of the row-column swaps corresponding to the diagonal element it is assigned to. This is done simply by using OpenMP to parallelise the outer \textit{for} loop of the serial implementation.
 
-Unlike the naive approach, a thread is not assigned a \textit{chunk} of elements to swap, instead a single thread is responsible for all of the associated swaps of its row(s) and column(s). In addition, whilst it can be said that the number of swaps per thread is constant in the naive case, this is not true of the diagonal implementation, That is, threads allocated elements further along the diagonal will inherently have to do fewer swaps than those allocated elements earlier in the diagonal.
+Unlike the naive approach, a thread is not assigned a pair of elements to swap, instead a single thread is responsible for all of the associated swaps of its row(s) and column(s). In addition, whilst it can be said that the number of swaps per thread is constant in the naive case, this is not true of the diagonal implementation, That is, threads allocated elements further along the diagonal will inherently have to do fewer swaps than those allocated elements earlier in the diagonal.
 
 \subsection{Block Approach}
 
 The parallelisation of the block approach using OpenMP would ideally involve assigning threads to an even number of block-transposition and block-swap operations. However, this is not easily achieved using OpenMP; for similar reasons to the diagonal approach.
 
 
-That is, OpenMP is used to parallelise the outer \textit{for} loop of the serial implementation. In this way, each thread is given an equal number of blocks to transpose and swap. In total, given the use of 2x2 blocks, the total number of blocks is given by $noBlocks=\frac{L(L+1)}{2}$, where $L=\frac{N}{2}$ for a $N\times N$ matrix.
+That is, OpenMP is used to parallelise the outer \textit{for} loop of the serial implementation. In this way, each thread is given an variable number of blocks to transpose and swap. In total, given the use of 2x2 blocks, the total number of blocks is given by $noBlocks=\frac{L(L+1)}{2}$, where $L=\frac{N}{2}$ for a $N\times N$ matrix.
 
 
 
@@ -445,7 +447,7 @@ This does not achieve equal work-sharing due to different diagonal elements impl
 
 
 \subsection{Block Approach}
-The parallelisation of the block transposition using Pthreads is more complex than the parallelisation of the diagonal method. That said, the basic premise remains the same: each thread is assigned a certain number of blocks which it is responsible for; performing the necessary intra-block transpositions and subsequent block swaps. The listing below shows the \textit{struct} passed on a per-thread basis, to the block transposition function.
+The parallelisation of the block transposition using Pthreads is more complex than the parallelisation of the diagonal method. That said, the basic premise remains the same: each thread is assigned a certain number of blocks which it is responsible for; performing the necessary intra-block transpositions and subsequent block swaps, thus achieveing even work-sharing. The listing below shows the \textit{struct} passed on a per-thread basis, to the block transposition function.
 
 
 \begin{lstlisting}
@@ -477,7 +479,6 @@ The test machine that the code was run on had the following specifications:
 
 The tables and graphs shown in this section are automatically generated in \LaTeX from the output CSV files from running the respective implementations. This is to ensure that data is not compared across multiple test runs.
 
-
 \begin{table}[h]
 \begin{adjustwidth}{-0cm}{}
 \centering
@@ -501,7 +502,6 @@ The tables and graphs shown in this section are automatically generated in \LaTe
     \end{adjustwidth}
 
 \end{table}
-
 
 
 
@@ -534,7 +534,6 @@ The tables and graphs shown in this section are automatically generated in \LaTe
 
 
 
-
 \begin{table}[h]
 \centering
 \caption{Results for Pthreads Parallelisation (Times in seconds)}
@@ -553,7 +552,7 @@ The tables and graphs shown in this section are automatically generated in \LaTe
     ]{pthreads.csv} % filename/path to file
 \end{table} 
 
-
+\clearpage
 
 %data is saved in matsize,naive,diag,block
 %except for pthreads, which does not have naive
@@ -561,7 +560,7 @@ The tables and graphs shown in this section are automatically generated in \LaTe
   \begin{center}
     \begin{tikzpicture}
       \begin{axis}[
-          width= 0.8\linewidth,
+          width= 0.85\linewidth,
           xlabel= Matrix size $N_0$, % Set the labels
           ylabel= Time (s),
           legend style={draw=none},
@@ -583,7 +582,7 @@ The tables and graphs shown in this section are automatically generated in \LaTe
   \begin{center}
     \begin{tikzpicture}
       \begin{axis}[
-          width= 0.8\linewidth,
+          width= 0.85\linewidth,
           xlabel= Matrix size $N_0$, % Set the labels
           ylabel= Time (s),
           legend style={draw=none},
@@ -607,7 +606,7 @@ The tables and graphs shown in this section are automatically generated in \LaTe
   \begin{center}
     \begin{tikzpicture}
       \begin{axis}[
-          width= 0.8\linewidth,
+          width= 0.85\linewidth,
           xmin=0,
           xlabel= Matrix size $N_0$, % Set the labels
           ylabel= Time (s),
@@ -649,13 +648,12 @@ Lastly, caching and more specifically cache misses are an important factor to co
 %%uneven work sharing
 %false sharing, cache misses etc.
 %\newpage
-
+\clearpage
 \section{Conclusion}
-Three implementations of matrix transposition algorithms have been presented. This has been done with specific reference to the parallelisation of these methods, implemented in C. In doing so, the use of OpenMP and Pthreads as tools for achieving the parallelisation of the algorithms has also been presented, alongside a performance comparison of the two on a per algorithm basis. It has been shown that a naive method has a clear advantage within a naive implementation. However, when parallelised, the block approach quickly begins to outperform both the naive and diagonal approaches, as the size of the input matrices increases.
+Three implementations of matrix transposition algorithms have been presented. This has been done with specific reference to the parallelisation of these methods, implemented in C. In doing so, the use of OpenMP and Pthreads as tools for achieving the parallelisation of the algorithms has also been presented, alongside a performance comparison of the two on a per algorithm basis. It has been shown that a naive method has a clear advantage within a serial implementation. However, when parallelised, the block approach quickly begins to outperform both the naive and diagonal approaches, as the size of the input matrices increases.
 
 %\renewcommand*{\bibfont}{\small}
-\clearpage
-\onecolumn
+
 \printbibliography
 
 \clearpage
@@ -729,13 +727,13 @@ Three implementations of matrix transposition algorithms have been presented. Th
 
 \subsection*{OpenMP}
 \begin{algorithm}
-\caption{Diagonal Approach (OpenMP)}\label{euclid}
+\caption{Naive Approach (OpenMP)}\label{euclid}
 \begin{algorithmic}[1]
-\Procedure{diagonalTransposition}{rank2Tensor t1}
+\Procedure{naiveTransposition}{rank2Tensor t1}
 \State $\textit{t1} \gets \textit{first rank 2 tensor}$
 
-\State 	\#pragma omp parallel for
 \For{i=0..t1.rows}
+\State 	\#pragma omp parallel for
 \For{j=i..t1.cols}
 \State swap(t1[i][[j],t2[j][i])
 \EndFor
@@ -750,7 +748,7 @@ Three implementations of matrix transposition algorithms have been presented. Th
 
 
 \begin{algorithm}
-\caption{Block Approach (OpenMP)}\label{euclid}
+\caption{Diagonal Approach (OpenMP)}\label{euclid}
 \begin{algorithmic}[1]
 \Procedure{diagonalTransposition}{rank2Tensor t1}
 \State $\textit{t1} \gets \textit{first rank 2 tensor}$
